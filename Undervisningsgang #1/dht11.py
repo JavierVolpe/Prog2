@@ -1,3 +1,5 @@
+#Viser temperatur og humidity ved brug af DHT11
+
 import Adafruit_DHT
 
 # Sensor should be set to Adafruit_DHT.DHT11,
