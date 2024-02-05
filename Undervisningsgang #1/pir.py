@@ -1,5 +1,7 @@
 import RPi.GPIO as GPIO
 
+#TODO import motionsensor?
+
 from time import sleep
  
 GPIO.setmode(GPIO.BCM) #Broadcom SOC channel (Raspberry Pi)
