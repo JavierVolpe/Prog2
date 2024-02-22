@@ -30,7 +30,7 @@
 #    write(string)
 #    receive_nmea_data(echo)
 
-# Helper function: Converts NMEA lat/long string to decimal degrees
+# Helper functions: Converts NMEA lat/long string to decimal degrees
 def __nmea2deg(string, quadrant):      # e.g. 1234.5678
     l_f = float(string)                # Convert the input string to a float
     l_i = int(l_f / 100)               # Get the degrees part
@@ -39,6 +39,22 @@ def __nmea2deg(string, quadrant):      # e.g. 1234.5678
     if quadrant == 'S' or quadrant == 'W': # If south or west make the value negative
         deg = -deg
     return deg
+
+
+def check_nmea_frame(string):
+
+    string = string.strip()
+    chk_sum_str = string[len(string) - 2:]
+    frame_data = string[1:len(string) - 3]
+    
+    chk_sum = 0
+    for ch in frame_data:
+       chk_sum ^= ord(ch)
+    
+    if chk_sum == int(chk_sum_str, 16):
+       return True
+
+    return False
 
 
 class GPS_SIMPLE:
@@ -91,131 +107,120 @@ class GPS_SIMPLE:
             uart.write("$PUBX,40,VTG,0,0,0,0*5E\n")            
 
     
-    def __parse_nmea_frame(self, string):   # Change to parse all relevant frames: http://aprs.gids.nl/nmea/, no checksum validation
+    def __parse_nmea_frame(self, string):# Change to parse all relevant frames: http://aprs.gids.nl/nmea/, no checksum validation
         
-        subframe = string.split(',')   # Split the NMEA frame into parts
+        if check_nmea_frame(string) == True:# Validate the frame against the checksum
         
-        if len(subframe) < 6:          # No real data received
-            return
-
-
-        # Parse $GPGGA
-        if subframe[0] == "$GPGGA":    # $GPGGA,205019.00,5449.69634,N,01156.28487,E,1,12,0.98,29.3,M,39.7,M,,*6B
-            self.__frames_received |= 0x0001 # Set the frame ID bit
-
-            if len(subframe) < 10:     # Return if there is not enough subframes to process
-                return
+            subframe = string.split(',')   # Split the NMEA frame into parts
             
-            # UTC hours, minutes and seconds
-            if len(subframe[1]) > 5:
-                self.__utc_hours = int(subframe[1][0:2])
-                self.__utc_minutes = int(subframe[1][2:4])
-                self.__utc_seconds = int(subframe[1][4:6])
-            
-            # Latitude
-            if len(subframe[2]) > 0 and len(subframe[3]) > 0:
-                self.__latitude = __nmea2deg(subframe[2], subframe[3])
-            
-            # Longitude
-            if len(subframe[4]) > 0 and len(subframe[5]) > 0:
-                self.__longitude = __nmea2deg(subframe[4], subframe[5])
+            # Parse $GPGGA
+            if subframe[0] == "$GPGGA":    # $GPGGA,205019.00,5449.69634,N,01156.28487,E,1,12,0.98,29.3,M,39.7,M,,*6B
+                self.__frames_received |= 0x0001 # Set the frame ID bit
 
-            # Fix quality, higher is better
-            if len(subframe[6]) > 0:
-                self.__fix_quality = int(subframe[6])
-        
-            # Number of satellites, higher is better
-            if len(subframe[7]) > 0:
-                self.__satellites = int(subframe[7])
-        
-            # HDOP, less is better
-            if len(subframe[8]) > 0:
-                self.__hdop = float(subframe[8])
-        
-            # Altitude
-            if len(subframe[9]) > 0:
-                self.__altitude = float(subframe[9])
-   
-
-        # Parse $GPRMC                        
-        elif subframe[0] == "$GPRMC":  # $GPRMC,081836.00,A,3751.65,S,14507.36,E,000.0,360.0,130998,011.3,E*62
-            self.__frames_received |= 0x0002 # Set the frame ID bit
-            
-            if len(subframe) < 10:     # Return if there is not enough subframes to process
-                return
-
-            # UTC hours, minutes and seconds
-            if len(subframe[1]) > 5:
-                self.__utc_hours = int(subframe[1][0:2])
-                self.__utc_minutes = int(subframe[1][2:4])
-                self.__utc_seconds = int(subframe[1][4:6])
-        
-            # Validity
-            if len(subframe[2]) > 0:
-                self.__validity = subframe[2]
-             
-            # Latitude
-            if len(subframe[3]) > 0 and len(subframe[4]) > 0:
-                self.__latitude = __nmea2deg(subframe[3], subframe[4])
-            
-            # Longitude
-            if len(subframe[5]) > 0 and len(subframe[6]) > 0:
-                self.__longitude = __nmea2deg(subframe[5], subframe[6])                    
+                # UTC hours, minutes and seconds
+                if len(subframe[1]) > 5:
+                    self.__utc_hours = int(subframe[1][0:2])
+                    self.__utc_minutes = int(subframe[1][2:4])
+                    self.__utc_seconds = int(subframe[1][4:6])
                 
-            # Speed, m/s
-            if len(subframe[7]) > 0:
-                self.__speed = float(subframe[7])
-        
-            # Course, °
-            if len(subframe[8]) > 0:
-                self.__course = float(subframe[8])
-        
-            # UTC year, month, day
-            if len(subframe[9]) > 5:
-                self.__utc_day = int(subframe[9][0:2])
-                self.__utc_month = int(subframe[9][2:4])
-                self.__utc_year = 2000 + int(subframe[9][4:6])
-
-
-        # Parse $GPZDA
-        elif subframe[0] == "$GPZDA":  # $GPZDA,143042.00,25,08,2005,,*6E
-            self.__frames_received |= 0x0004 # Set the frame ID bit
-            
-            if len(subframe) < 5:      # Return if there is not enough subframes to process
-                return
-
-            # UTC hours, minutes and seconds       
-            if len(subframe[1]) > 5:
-                self.__utc_hours = int(subframe[1][0:2])
-                self.__utc_minutes = int(subframe[1][2:4])
-                self.__utc_seconds = int(subframe[1][4:6])
-            
-            # UTC day
-            if len(subframe[2]) > 0:
-                self.__utc_day = int(subframe[2])
+                # Latitude
+                if len(subframe[2]) > 0 and len(subframe[3]) > 0:
+                    self.__latitude = __nmea2deg(subframe[2], subframe[3])
                 
-            # UTC month
-            if len(subframe[3]) > 0:
-                self.__utc_month = int(subframe[3])
+                # Longitude
+                if len(subframe[4]) > 0 and len(subframe[5]) > 0:
+                    self.__longitude = __nmea2deg(subframe[4], subframe[5])
 
-            # UTC year
-            if len(subframe[4]) > 0:
-                self.__utc_year = int(subframe[4])
+                # Fix quality, higher is better
+                if len(subframe[6]) > 0:
+                    self.__fix_quality = int(subframe[6])
             
-        
-        # Check if other frames are received and if so set the frame ID bit
-        elif subframe[0] == "$GPGLL":
-            self.__frames_received |= 0x0008 # Set the frame ID bit
-        elif subframe[0] == "$GPGRS":
-            self.__frames_received |= 0x0010 # Set the frame ID bit
-        elif subframe[0] == "$GPGSA":
-            self.__frames_received |= 0x0020 # Set the frame ID bit
-        elif subframe[0] == "$GPGST":
-            self.__frames_received |= 0x0040 # Set the frame ID bit
-        elif subframe[0] == "$GPGSV":
-            self.__frames_received |= 0x0080 # Set the frame ID bit
-        elif subframe[0] == "$GPVTG":
-            self.__frames_received |= 0x0100 # Set the frame ID bit
+                # Number of satellites, higher is better
+                if len(subframe[7]) > 0:
+                    self.__satellites = int(subframe[7])
+            
+                # HDOP, less is better
+                if len(subframe[8]) > 0:
+                    self.__hdop = float(subframe[8])
+            
+                # Altitude
+                if len(subframe[9]) > 0:
+                    self.__altitude = float(subframe[9])
+       
+
+            # Parse $GPRMC                        
+            elif subframe[0] == "$GPRMC":  # $GPRMC,081836.00,A,3751.65,S,14507.36,E,000.0,360.0,130998,011.3,E*62
+                self.__frames_received |= 0x0002 # Set the frame ID bit
+                
+                # UTC hours, minutes and seconds
+                if len(subframe[1]) > 5:
+                    self.__utc_hours = int(subframe[1][0:2])
+                    self.__utc_minutes = int(subframe[1][2:4])
+                    self.__utc_seconds = int(subframe[1][4:6])
+            
+                # Validity
+                if len(subframe[2]) > 0:
+                    self.__validity = subframe[2]
+                 
+                # Latitude
+                if len(subframe[3]) > 0 and len(subframe[4]) > 0:
+                    self.__latitude = __nmea2deg(subframe[3], subframe[4])
+                
+                # Longitude
+                if len(subframe[5]) > 0 and len(subframe[6]) > 0:
+                    self.__longitude = __nmea2deg(subframe[5], subframe[6])                    
+                    
+                # Speed, m/s
+                if len(subframe[7]) > 0:
+                    self.__speed = float(subframe[7])
+            
+                # Course, °
+                if len(subframe[8]) > 0:
+                    self.__course = float(subframe[8])
+            
+                # UTC year, month, day
+                if len(subframe[9]) > 5:
+                    self.__utc_day = int(subframe[9][0:2])
+                    self.__utc_month = int(subframe[9][2:4])
+                    self.__utc_year = 2000 + int(subframe[9][4:6])
+
+
+            # Parse $GPZDA
+            elif subframe[0] == "$GPZDA":  # $GPZDA,143042.00,25,08,2005,,*6E
+                self.__frames_received |= 0x0004 # Set the frame ID bit
+                
+                # UTC hours, minutes and seconds       
+                if len(subframe[1]) > 5:
+                    self.__utc_hours = int(subframe[1][0:2])
+                    self.__utc_minutes = int(subframe[1][2:4])
+                    self.__utc_seconds = int(subframe[1][4:6])
+                
+                # UTC day
+                if len(subframe[2]) > 0:
+                    self.__utc_day = int(subframe[2])
+                    
+                # UTC month
+                if len(subframe[3]) > 0:
+                    self.__utc_month = int(subframe[3])
+
+                # UTC year
+                if len(subframe[4]) > 0:
+                    self.__utc_year = int(subframe[4])
+                
+            
+            # Check if other frames are received and if so set the frame ID bit
+            elif subframe[0] == "$GPGLL":
+                self.__frames_received |= 0x0008 # Set the frame ID bit
+            elif subframe[0] == "$GPGRS":
+                self.__frames_received |= 0x0010 # Set the frame ID bit
+            elif subframe[0] == "$GPGSA":
+                self.__frames_received |= 0x0020 # Set the frame ID bit
+            elif subframe[0] == "$GPGST":
+                self.__frames_received |= 0x0040 # Set the frame ID bit
+            elif subframe[0] == "$GPGSV":
+                self.__frames_received |= 0x0080 # Set the frame ID bit
+            elif subframe[0] == "$GPVTG":
+                self.__frames_received |= 0x0100 # Set the frame ID bit
         
         
     # Get the UTC year
@@ -327,26 +332,15 @@ class GPS_SIMPLE:
         if self.uart.any() > 0:
             string = self.uart.readline() # Collect incoming chars
             try:
-                self.__nmea_buffer += string.decode("utf-8")  # UART returns bytes. They have to be conv. to chars/a string
+                self.__nmea_buffer += string.decode("ascii")  # "utf-8" UART returns bytes. They have to be conv. to chars/a string
                 if "\n" in self.__nmea_buffer:
-                    self.__parse_nmea_frame(self.__nmea_buffer)
                     if echo:
                         print(self.__nmea_buffer, end = '')   # Echo the received frame
+                    self.__parse_nmea_frame(self.__nmea_buffer)
                     self.__nmea_buffer = ""
-              
                     return True
-            except ValueError as e:
-                print(f"Failed to parse NMEA sentence with error: {e}")
-                if echo:
-                    print(self.__nmea_buffer)
-                self.__nmea_buffer = ""
-                return False
-            except:
-                print("An error hapened while parsing NMEA sentence")
-                if echo:
-                    print(self.__nmea_buffer)
-                self.__nmea_buffer = ""
-                return False    
+            except:                    # Only happen when the first partial frame is received. No need to cause any alarm
+                None                   # The problem is in the decode() MicroPython implementation
             
         return False
     

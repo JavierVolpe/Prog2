@@ -5,11 +5,10 @@ import espnow
 # A WLAN interface must be active to send()/recv()
 station = network.WLAN(network.STA_IF)  # Or network.AP_IF
 station.active(True)
-#sta.disconnect()      # For ESP8266
 
 esp_now = espnow.ESPNow()
 esp_now.active(True)
-peer = b'\xbb\xbb\xbb\xbb\xbb\xbb'   # MAC address of peer's wifi interface
+peer = b'\xff\xff\xff\xff\xff\xff'   # MAC address of peer's wifi interface
 esp_now.add_peer(peer)      # Must add_peer() before send()
 
 esp_now.send(peer, "Starting...")

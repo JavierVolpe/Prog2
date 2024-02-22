@@ -1,3 +1,5 @@
+# https://randomnerdtutorials.com/micropython-hc-sr04-ultrasonic-esp32-esp8266/
+
 import machine, time
 from machine import Pin
 
@@ -8,17 +10,17 @@ __license__ = "Apache License 2.0. https://www.apache.org/licenses/LICENSE-2.0"
 class HCSR04:
     """
     Driver to use the untrasonic sensor HC-SR04.
-    The sensor range is between 2cm and 4m.
+    The sensor range is between 2 cm and 4 m.
     The timeouts received listening to echo pin are converted to OSError('Out of range')
     """
-    # echo_timeout_us is based in chip range limit (400cm)
+    # echo_timeout_us is based in chip range limit (400 cm)
     def __init__(self, trigger_pin, echo_pin, echo_timeout_us=500*2*30):
         """
         trigger_pin: Output pin to send pulses
         echo_pin: Readonly pin to measure the distance. The pin should be protected with 1k resistor
         echo_timeout_us: Timeout in microseconds to listen to echo pin. 
-        By default is based in sensor limit range (4m)
-        """
+        By default is based in sensor limit range (4 m)
+        """ 
         self.echo_timeout_us = echo_timeout_us
         # Init trigger pin (out)
         self.trigger = Pin(trigger_pin, mode=Pin.OUT, pull=None)
@@ -35,7 +37,7 @@ class HCSR04:
         self.trigger.value(0) # Stabilize the sensor
         time.sleep_us(5)
         self.trigger.value(1)
-        # Send a 10us pulse.
+        # Send a 10 us pulse.
         time.sleep_us(10)
         self.trigger.value(0)
         try:
@@ -46,30 +48,20 @@ class HCSR04:
                 raise OSError('Out of range')
             raise ex
 
+    # To calculate the distance we get the pulse_time and divide it by 2 
+    # (the pulse walk the distance twice) and by 29.1 us because
+    # the sound speed on air (343.2 m/s), that It's equivalent to
+    # 0.034320 cm/us that is 1 cm each 29.1 us
+
+    # Get the distance in milimeters without floating point operations
     def distance_mm(self):
-        """
-        Get the distance in milimeters without floating point operations.
-        """
         pulse_time = self._send_pulse_and_wait()
 
-        # To calculate the distance we get the pulse_time and divide it by 2 
-        # (the pulse walk the distance twice) and by 29.1 becasue
-        # the sound speed on air (343.2 m/s), that It's equivalent to
-        # 0.34320 mm/us that is 1mm each 2.91us
-        # pulse_time // 2 // 2.91 -> pulse_time // 5.82 -> pulse_time * 100 // 582 
-        mm = pulse_time * 100 // 582
+        mm = pulse_time * 100 // 582 # // floor division
         return mm
 
+    # Get the distance in centimeters with floating point operations. It returns a float
     def distance_cm(self):
-        """
-        Get the distance in centimeters with floating point operations.
-        It returns a float
-        """
         pulse_time = self._send_pulse_and_wait()
-
-        # To calculate the distance we get the pulse_time and divide it by 2 
-        # (the pulse walk the distance twice) and by 29.1 becasue
-        # the sound speed on air (343.2 m/s), that It's equivalent to
-        # 0.034320 cm/us that is 1cm each 29.1us
-        cms = (pulse_time / 2) / 29.1
-        return cms
+        cm = int((pulse_time / 2) / 29.1)
+        return cm

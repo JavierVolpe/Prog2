@@ -21,11 +21,18 @@ MAC_ADDR_BROADCAST = const(b'\xFF\xFF\xFF\xFF\xFF\xFF') # ESP-NOW broadcast MAC 
 # FUNCTIONS
 # Add MAC address to the list of receivers
 def esp_now_add_mac_address(mac_addr):
-    en.add_peer(mac_addr)
+    try:
+        en.get_peer(mac_addr)
+    except OSError as ose: # MAC address is not in the list so add it
+        if ose.args[1] == "ESP_ERR_ESPNOW_NOT_FOUND":
+            en.add_peer(mac_addr)
 
 # Delete a MAC address from the list of receivers
 def esp_now_delete_mac_address(mac_addr):
-    en.del_peer(mac_addr)
+    try:
+        en.del_peer(mac_addr)
+    except ValueError:
+        print("Failed to delete existing MAC address")    
 
 # Send a message to the receiver with the MAC address
 def esp_now_send_message(mac_addr, string):
@@ -33,6 +40,7 @@ def esp_now_send_message(mac_addr, string):
         en.send(mac_addr, string, False)
     except ValueError as e:
         print("Error sending the message: " + str(e))    
+
 # Checks if there is a message and if so returns it
 def esp_now_receive_message():
     try:    
