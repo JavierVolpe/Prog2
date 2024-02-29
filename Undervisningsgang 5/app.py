@@ -10,37 +10,12 @@ import sqlite3
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
-conn = sqlite3.connect("/home/javier/testapp/dht11.db")
-curs = conn.cursor()
-
-
-def getHistData(numSamples):
-    curs.execute("select * from vejr ORDER BY timestamp DESC LIMIT " + str(numSamples))
-    data = curs.fetchall()
-    dates = []
-    temps = []
-    hums = []
-    for row in reversed(data):
-        dates.append(row[0])
-        temps.append(row[1])
-        hums.append(row[2])
-    return dates, temps, hums
-
-
-def maxRowsTable():
-    for row in curs.execute("select COUNT(temperature) from  vejr"):
-        maxNumberRows = row[0]
-    return maxNumberRows
-
-
-global numSamples
-numSamples = maxRowsTable()
-if numSamples > 101:
-    numSamples = 100
-
-
 app = Flask(__name__)
 
+def get_db_connection():
+    conn = sqlite3.connect("/home/javier/testapp/dht11.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
 @app.route("/")
 def hello():
@@ -49,13 +24,9 @@ def hello():
     )
 
 
-# ...
 @app.route("/about/")
 def about():
     return render_template("about.html")
-
-
-# ...
 
 
 @app.route("/comments/")
@@ -70,7 +41,7 @@ def comments():
     return render_template("comments.html", comments=comments)
 
 
-@app.route("/graph/")
+@app.route("/graph/") #Øvelse 1
 def graph():
     # Generate the figure **without using pyplot**.
     fig = Figure()
@@ -134,10 +105,7 @@ def graph():
     return render_template("plot.html", graph_data=graph_data)
 
 
-def get_db_connection():
-    conn = sqlite3.connect("/home/javier/testapp/dht11.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+
 
 
 @app.route("/sensor_data/")
@@ -185,7 +153,7 @@ def sensor_temp():
     ax.set_xticks(x1)
     ax.set_xticklabels(x1, rotation=90)  # Rotate x-axis labels 90 degrees
     ax.set_xlabel("Datetime")  # setting up X-axis label
-    ax.set_ylabel("Temperature")  # setting up Y-axis label
+    ax.set_ylabel("Temperature (C°)")  # setting up Y-axis label
     ax.xaxis.label.set_color("red")  # setting up X-axis label color to hotpink
     ax.yaxis.label.set_color("yellow")  # setting up Y-axis label color to hotpink
     ax.tick_params(axis="x", colors="red")  # setting up X-axis tick color to white
@@ -227,7 +195,7 @@ def sensor_humidity():
     y1 = []
 
     for data in sensor_data:
-        x1.append(data[0][14:19])  # datetime
+        x1.append(data[0][11:19])  # datetime
         y1.append(data[1])  # temperature
 
 
