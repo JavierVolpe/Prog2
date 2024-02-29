@@ -1,0 +1,11 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Sensor data {% endblock %}</h1>
+    {% for sensor_data in sensor_data %}
+        <div class='post'>
+            <p>{{ sensor_data['datetime'] }}: {{ sensor_data['temperature'] }} / {{ sensor_data['humidity'] }}</p>
+         </div>
+    {% endfor %}
+{% endblock %}

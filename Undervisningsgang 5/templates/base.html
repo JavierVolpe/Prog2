@@ -24,6 +24,21 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('about') }}">About</a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('graph') }}">Graph</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('sensor_data') }}">Sensor data</a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('sensor_temp') }}">Sensor temperature</a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('sensor_humidity') }}">Sensor humidity</a>
+            </li>
+
         </ul>
         </div>
     </div>
@@ -31,6 +46,10 @@
     <div class="container">
         {% block content %} {% endblock %}
     </div>
+
+
+
+
 
     <!-- Optional JavaScript -->
 

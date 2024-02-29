@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Graph Humidity - &Oslash;velse 2{% endblock %}</h1>
+    <div style="width: 50%; margin: auto">
+        {{ graph_data | safe}}
+            
+
+        <hr>
+
+    </div>
+{% endblock %}
