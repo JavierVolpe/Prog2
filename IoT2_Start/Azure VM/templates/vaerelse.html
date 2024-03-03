@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %} Værelse {% endblock %}
+
+{% block content %}
+<center>
+    <h1 style="color: azure;"> Værelse </h1>
+    <br>
+<form action="/taend" method="post">
+    <input type="submit" value="Tænd lys"> </form>
+    <form action="/sluk" method="post">
+        <input type="submit" value="Sluk lys"> </form>
+
+
+</center>
+ {% endblock %}
